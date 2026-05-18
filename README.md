@@ -1,37 +1,42 @@
 # Semantic Similarity Evaluation for LLM Answers
 
-This repository contains the complete code for an NLP project that evaluates whether semantic similarity in embedding space can proxy factual correctness for LLM-generated answers.
+This repository contains the complete code for an NLP project that evaluates whether embedding-space semantic similarity can proxy factual correctness for LLM-generated answers.
 
-Large artifacts are intentionally excluded from GitHub:
+The public GitHub version intentionally excludes large local artifacts:
 
 - downloaded model checkpoints
 - raw or processed dataset files
-- generated logs, tables, embeddings, and figures
+- generated logs, embeddings, tables, figures, and other experiment outputs
 
-Public dataset and model links are included below.
+All code lives under `src/`; report and poster sources live under `docs/`.
 
-## Clean Repository Layout
+## Repository Layout
 
 ```text
 .
-├── scripts/                         # command-line entrypoints
-├── src/semantic_similarity_eval/     # importable project package
-│   ├── config.py                     # centralized paths and experiment settings
-│   ├── pipeline/                     # inference, HHEM scoring, embeddings, full runner
-│   ├── analysis/                     # metrics, refinement, ablations, failure analysis, plots
-│   ├── tools/                        # lightweight sample inspection and smoke tests
-│   └── utils/                        # shared IO, modeling, metrics, text normalization
-├── data/processed/                   # local processed JSONL datasets, not tracked
-├── models/                           # local model checkpoints, not tracked
-├── outputs/                          # generated experiment outputs, not tracked
-└── docs/                             # report/poster sources and data/model notes
+├── README.md
+├── requirements.txt
+├── pyproject.toml
+├── docs/
+│   ├── report/
+│   └── poster/
+└── src/
+    └── semantic_similarity_eval/
+        ├── __main__.py             # unified CLI
+        ├── config.py               # paths, model choices, profiles, thresholds
+        ├── pipeline/               # inference, HHEM scoring, embeddings, full runner
+        ├── analysis/               # metrics, refinement, ablations, failure analysis, plots
+        ├── tools/                  # sample inspection and smoke tests
+        └── utils/                  # shared IO, metrics, modeling, text normalization
 ```
 
-The main path configuration lives in `src/semantic_similarity_eval/config.py`:
+Runtime directories are created locally when needed and are ignored by Git:
 
-- datasets: `data/processed/<dataset>/merged_fb.json`
-- models: `models/<model-name>/`
-- outputs: `outputs/results/` and `outputs/results_refine/`
+- `data/processed/`
+- `models/`
+- `outputs/`
+
+The path configuration is centralized in `src/semantic_similarity_eval/config.py`.
 
 ## Environment
 
@@ -41,13 +46,19 @@ Use Python 3.10+.
 pip install -r requirements.txt
 ```
 
+Run commands from the repository root with `PYTHONPATH=src`:
+
+```bash
+PYTHONPATH=src python -m semantic_similarity_eval --help
+```
+
 The large-model stages expect a CUDA-capable PyTorch installation. Lightweight checks can run on CPU.
 
-## Datasets
+## Data and Model Setup
 
-The repository does not include dataset files. Download the public datasets and preprocess them into JSONL files with fields `question` and `correct_answer`.
+This repository does not include full data files or model checkpoints. Download them from the public sources below.
 
-Expected local paths:
+Expected processed dataset paths:
 
 ```text
 data/processed/sciq/merged_fb.json
@@ -56,7 +67,11 @@ data/processed/nq/merged_fb.json
 data/processed/truthfulQA/merged_fb.json
 ```
 
-Although the filenames end in `.json`, the code reads them as one JSON object per line.
+Each dataset file is JSONL, even though the project filename ends with `.json`. Each line should contain at least:
+
+```json
+{"question": "...", "correct_answer": "..."}
+```
 
 | Dataset | Role | Access link |
 | --- | --- | --- |
@@ -65,13 +80,7 @@ Although the filenames end in `.json`, the code reads them as one JSON object pe
 | Natural Questions | Long-form QA | https://github.com/google-research-datasets/natural-questions |
 | TruthfulQA | Long-form truthfulness/factuality QA | https://github.com/sylinrl/TruthfulQA |
 
-In the main experiments, we used a seeded subset profile: up to 1000 examples for SciQ, Simple Questions, and Natural Questions, and 817 processed examples for TruthfulQA.
-
-## Models
-
-No model checkpoints are included. Download the pretrained models and place them under `models/`, or edit `MODEL_PATHS` in `src/semantic_similarity_eval/config.py`.
-
-Expected default paths:
+Expected model paths:
 
 ```text
 models/Llama-3.2-3B-Instruct
@@ -93,61 +102,42 @@ models/paraphrase-MiniLM-L6-v2
 | Sentence-Transformers all-MiniLM-L6-v2 | Embedding ablation model | https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2 |
 | Sentence-Transformers paraphrase-MiniLM-L6-v2 | Embedding ablation model | https://huggingface.co/sentence-transformers/paraphrase-MiniLM-L6-v2 |
 
-## Running
+You can change local dataset or model locations in `src/semantic_similarity_eval/config.py`.
 
-Inspect dataset samples after placing processed data:
+## Unified Interface
 
-```bash
-python scripts/check_data_samples.py --dataset sciq --n 3
-```
-
-Run a small pilot:
+All commands use the same interface:
 
 ```bash
-python scripts/run_pipeline.py --profile pilot
+PYTHONPATH=src python -m semantic_similarity_eval <command> [options]
 ```
 
-Run the default main subset:
+Common commands:
 
 ```bash
-python scripts/run_pipeline.py
+PYTHONPATH=src python -m semantic_similarity_eval samples --dataset sciq --n 3
+PYTHONPATH=src python -m semantic_similarity_eval pipeline --profile pilot
+PYTHONPATH=src python -m semantic_similarity_eval pipeline
+PYTHONPATH=src python -m semantic_similarity_eval pipeline --dataset truthfulQA --profile main
+PYTHONPATH=src python -m semantic_similarity_eval pipeline --profile full
 ```
 
-Run one dataset:
+Individual stages:
 
 ```bash
-python scripts/run_pipeline.py --dataset truthfulQA --profile main
+PYTHONPATH=src python -m semantic_similarity_eval inference --profile main
+PYTHONPATH=src python -m semantic_similarity_eval correctness
+PYTHONPATH=src python -m semantic_similarity_eval embeddings
+PYTHONPATH=src python -m semantic_similarity_eval similarity
+PYTHONPATH=src python -m semantic_similarity_eval improve
+PYTHONPATH=src python -m semantic_similarity_eval refine
+PYTHONPATH=src python -m semantic_similarity_eval refinement-ablation
+PYTHONPATH=src python -m semantic_similarity_eval failures
+PYTHONPATH=src python -m semantic_similarity_eval embedding-ablation
+PYTHONPATH=src python -m semantic_similarity_eval plot
 ```
 
-Run all available records:
-
-```bash
-python scripts/run_pipeline.py --profile full
-```
-
-Resume is enabled by default for JSONL outputs. Add `--overwrite` only when recomputing a stage from scratch.
-
-## Individual Stages
-
-```bash
-python scripts/run_inference.py --profile main
-python scripts/run_eval_correctness.py
-python scripts/run_embeddings.py
-python scripts/analyze_similarity.py
-python scripts/improve_metric.py
-python scripts/refine_evaluation.py
-python scripts/refinement_ablation.py
-python scripts/analyze_failures.py
-python scripts/embedding_ablation.py
-python scripts/plot_refined_results.py
-```
-
-Compatibility entrypoints are preserved in `scripts/`:
-
-- `llama_Inference.py`
-- `llama_inference.py`
-- `eval_hem.py`
-- `encoder_embedding.py`
+Resume is enabled by default for JSONL outputs. Add `--overwrite` when recomputing a stage from scratch.
 
 ## Outputs
 
@@ -187,8 +177,8 @@ Refined evaluation:
 Lightweight checks:
 
 ```bash
-python -m compileall scripts src
-python scripts/smoke_tests.py
+python -m compileall src
+PYTHONPATH=src python -m semantic_similarity_eval smoke-test
 ```
 
 The smoke tests do not load large models. Dataset checks are skipped when processed data files are absent.
@@ -196,5 +186,5 @@ The smoke tests do not load large models. Dataset checks are skipped when proces
 Full validation after downloading datasets and models:
 
 ```bash
-python scripts/run_pipeline.py --profile pilot
+PYTHONPATH=src python -m semantic_similarity_eval pipeline --profile pilot
 ```

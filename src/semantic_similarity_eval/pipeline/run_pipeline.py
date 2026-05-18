@@ -23,16 +23,16 @@ def stage_commands(args) -> List[List[str]]:
     overwrite_args = ["--overwrite"] if args.overwrite else []
     report_args = [*dataset_args, "--report-ready-only"]
     return [
-        [sys.executable, str(config.SCRIPTS_DIR / "run_inference.py"), "--profile", args.profile, "--device", args.device, *dataset_args, *overwrite_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "run_eval_correctness.py"), "--device", args.device, *dataset_args, *overwrite_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "run_embeddings.py"), "--device", args.device, *dataset_args, *overwrite_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "analyze_similarity.py"), *dataset_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "improve_metric.py"), "--device", args.device, *dataset_args, *overwrite_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "refine_evaluation.py"), "--device", args.device, *dataset_args, *overwrite_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "refinement_ablation.py"), "--device", args.device, *dataset_args, *overwrite_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "analyze_failures.py"), *dataset_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "embedding_ablation.py"), "--device", args.device, *dataset_args, *overwrite_args],
-        [sys.executable, str(config.SCRIPTS_DIR / "analyze_failures.py"), *report_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "inference", "--profile", args.profile, "--device", args.device, *dataset_args, *overwrite_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "correctness", "--device", args.device, *dataset_args, *overwrite_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "embeddings", "--device", args.device, *dataset_args, *overwrite_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "similarity", *dataset_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "improve", "--device", args.device, *dataset_args, *overwrite_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "refine", "--device", args.device, *dataset_args, *overwrite_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "refinement-ablation", "--device", args.device, *dataset_args, *overwrite_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "failures", *dataset_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "embedding-ablation", "--device", args.device, *dataset_args, *overwrite_args],
+        [sys.executable, "-m", "semantic_similarity_eval", "failures", *report_args],
     ]
 
 
